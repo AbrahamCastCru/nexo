@@ -8,7 +8,7 @@ their spending, while an internal back office reviews identities, investigates f
 alerts and audits every action. It runs on simulated money, like a fintech sandbox,
 but every part is designed the way a real bank would build it.
 
-> 🚧 **Status:** in active development. See the [roadmap](docs/roadmap.md) for progress.
+> 🚧 **Status:** in active development.
 
 ## What makes it interesting
 
@@ -38,8 +38,13 @@ but every part is designed the way a real bank would build it.
 ## Tech stack
 
 **Backend:** Java 21 · Spring Boot · Spring Security · Spring Data JPA · Flyway · Kafka · Resilience4j
+
 **Data:** PostgreSQL · Redis · Amazon S3
+
 **Identity:** Keycloak (OIDC) · Didit (KYC and biometrics)
+
 **Frontend:** Angular · Ionic · Capacitor
+
 **Infrastructure:** Docker · Kubernetes · Helm · Terraform · AWS (EKS, RDS, ElastiCache, SES, CloudFront)
+
 **Quality and operations:** JUnit 5 · Testcontainers · k6 · GitHub Actions · OpenTelemetry · Prometheus · Grafana

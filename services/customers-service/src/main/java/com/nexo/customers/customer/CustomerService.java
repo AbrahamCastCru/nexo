@@ -1,0 +1,62 @@
+package com.nexo.customers.customer;
+
+import java.util.UUID;
+
+import org.springframework.stereotype.Service;
+
+@Service 
+public class CustomerService {
+
+    // 1. Declaras el atributo como final (inmutable y seguro)
+    private final CustomerRepository customerRepository;
+
+    // 2. Lo recibes y lo asignas. Spring inyectará el InMemoryCustomerRepository aquí automáticamente.
+    public CustomerService(CustomerRepository customerRepository) {
+        this.customerRepository = customerRepository;
+    }
+
+    public Customer register(RegisterCustomerRequest customerRequest) {
+        if (customerRepository.existsByEmail(customerRequest.email())) {
+            throw new DuplicateCustomerException("email");
+        }
+
+        if (customerRepository.existsByPhone(customerRequest.phone())) {
+            throw new DuplicateCustomerException("phone");
+        }
+
+        Customer newCustomer = new Customer(
+            customerRequest.email(), 
+            customerRequest.phone(), 
+            customerRequest.firstName(), 
+            customerRequest.lastName(), 
+            customerRequest.curp(),
+            customerRequest.birthDate()
+        );
+
+        return customerRepository.save(newCustomer);
+    }
+
+    public Customer get(UUID id) {
+        return customerRepository.findById(id).orElseThrow(() -> new CustomerNotFoundException(id));
+    }
+
+    public Customer update(UUID id, UpdateCustomerRequest updateCustomerRequest) {
+        Customer customer = this.get(id);
+
+        if(updateCustomerRequest.phone() != null && !updateCustomerRequest.phone().equals(customer.getPhone())) {
+
+            if(customerRepository.existsByPhone(updateCustomerRequest.phone())) {
+                throw new DuplicateCustomerException("phone");
+            }
+
+            customer.changePhone(updateCustomerRequest.phone());
+        }
+
+        customer.changeName(
+            (updateCustomerRequest.firstName() != null) ? updateCustomerRequest.firstName() : customer.getFirstName(),
+            (updateCustomerRequest.lastName() != null ? updateCustomerRequest.lastName(): customer.getLastName())
+        );
+
+        return customerRepository.save(customer);
+    }
+}

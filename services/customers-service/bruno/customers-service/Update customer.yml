@@ -6,6 +6,12 @@ info:
 http:
   method: PATCH
   url: "{{baseUrl}}/customers/{{customerId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "phone": "5598765432"
+      }
   auth: inherit
 
 settings:

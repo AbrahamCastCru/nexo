@@ -10,7 +10,7 @@ import org.springframework.stereotype.Repository;
 @Repository 
 class InMemoryCustomerRepository implements CustomerRepository {
 
-    Map<UUID, Customer> customers = new ConcurrentHashMap<>(); 
+    private final Map<UUID, Customer> customers = new ConcurrentHashMap<>(); 
 
     @Override
     public Customer save(Customer customer) {

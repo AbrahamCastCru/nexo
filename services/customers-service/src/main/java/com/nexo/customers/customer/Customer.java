@@ -9,10 +9,12 @@ public class Customer {
     private final UUID id;
     private final String email;
     private String phone;
-    private String firstName, lastName;
+    private String firstName;
+    private String lastName;
     private final String curp;
     private final LocalDate birthDate;
-    private boolean emailVerified, phoneVerified;
+    private boolean emailVerified;
+    private boolean phoneVerified;
     private IdentityStatus identityStatus;
     private final Instant createdAt;
     
@@ -45,10 +47,6 @@ public class Customer {
 
     public String getLastName() {
         return lastName;
-    }
-
-    public String getName() {
-        return firstName + " " + lastName;
     }
     
     public void changeName(String firstName, String lastName) {

@@ -7,10 +7,8 @@ import org.springframework.stereotype.Service;
 @Service 
 public class CustomerService {
 
-    // 1. Declaras el atributo como final (inmutable y seguro)
     private final CustomerRepository customerRepository;
 
-    // 2. Lo recibes y lo asignas. Spring inyectará el InMemoryCustomerRepository aquí automáticamente.
     public CustomerService(CustomerRepository customerRepository) {
         this.customerRepository = customerRepository;
     }

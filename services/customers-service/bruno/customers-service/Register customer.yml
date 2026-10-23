@@ -1,0 +1,34 @@
+info:
+  name: Register customer
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/customers"
+  body:
+    type: json
+    data: |-
+      {
+        "email": "abraham.nexo@example.com",
+        "phone": "5512345678",
+        "firstName": "Abraham",
+        "lastName": "Castelan",
+        "curp": "CACX98P914HHGSRB08",
+        "birthDate": "1998-09-14"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const data = res.getBody();
+        bru.setVar("customerId", data.id);
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

@@ -1,0 +1,277 @@
+openapi: 3.1.0
+info:
+  title: Nexo Customers API
+  version: 0.1.0
+  description: |
+    Customer registration, profile and identity verification.
+    Errors use RFC 9457 Problem Details (application/problem+json).
+servers:
+  - url: http://localhost:8081
+    description: Local
+tags:
+  - name: Customers
+  - name: Verification
+paths:
+  /customers:
+    post:
+      tags: [Customers]
+      operationId: registerCustomer
+      summary: Register a customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterCustomerRequest'
+      responses:
+        '201':
+          description: Customer created
+          headers:
+            Location:
+              description: URL of the new customer
+              schema: { type: string }
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          description: Email or phone already registered
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /customers/lookup:
+    get:
+      tags: [Customers]
+      operationId: lookupCustomer
+      summary: Find a customer by phone or email
+      description: Used by Accounts to resolve a transfer recipient. Exactly one parameter is required.
+      parameters:
+        - name: phone
+          in: query
+          schema: { $ref: '#/components/schemas/MexicanPhone' }
+        - name: email
+          in: query
+          schema: { type: string, format: email }
+      responses:
+        '200':
+          description: Customer found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerSummary'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /customers/{customerId}:
+    parameters:
+      - $ref: '#/components/parameters/CustomerId'
+    get:
+      tags: [Customers]
+      operationId: getCustomer
+      summary: Get a customer
+      responses:
+        '200':
+          description: Customer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [Customers]
+      operationId: updateCustomer
+      summary: Update profile fields
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCustomerRequest'
+      responses:
+        '200':
+          description: Updated customer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Phone already registered to another customer
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /customers/{customerId}/email-verification:
+    parameters:
+      - $ref: '#/components/parameters/CustomerId'
+    post:
+      tags: [Verification]
+      operationId: verifyEmail
+      summary: Confirm the email with the code sent to the customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerificationCodeRequest'
+      responses:
+        '204':
+          description: Email verified
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: Code is wrong or expired
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /customers/{customerId}/phone-verification:
+    parameters:
+      - $ref: '#/components/parameters/CustomerId'
+    post:
+      tags: [Verification]
+      operationId: verifyPhone
+      summary: Confirm the phone with the code sent to the customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerificationCodeRequest'
+      responses:
+        '204':
+          description: Phone verified
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: Code is wrong or expired
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /customers/{customerId}/identity-verification:
+    parameters:
+      - $ref: '#/components/parameters/CustomerId'
+    get:
+      tags: [Verification]
+      operationId: getIdentityVerification
+      summary: Get the identity verification status
+      responses:
+        '200':
+          description: Current verification status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdentityVerification'
+        '404':
+          $ref: '#/components/responses/NotFound'
+components:
+  parameters:
+    CustomerId:
+      name: customerId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    NotFound:
+      description: Customer not found
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    ValidationError:
+      description: Request body or parameters are invalid
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+  schemas:
+    MexicanPhone:
+      type: string
+      description: 10-digit Mexican phone number, without country code
+      pattern: '^[0-9]{10}$'
+      examples: ['5512345678']
+    Curp:
+      type: string
+      description: Mexican CURP (18 characters)
+      pattern: '^[A-Z]{4}[0-9]{6}[HM][A-Z]{5}[0-9A-Z][0-9]$'
+      examples: ['GOMA900101HDFRRL09']
+    RegisterCustomerRequest:
+      type: object
+      required: [email, phone, firstName, lastName, curp, birthDate]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        phone: { $ref: '#/components/schemas/MexicanPhone' }
+        firstName: { type: string, minLength: 1, maxLength: 100 }
+        lastName: { type: string, minLength: 1, maxLength: 100 }
+        curp: { $ref: '#/components/schemas/Curp' }
+        birthDate: { type: string, format: date }
+    UpdateCustomerRequest:
+      type: object
+      minProperties: 1
+      properties:
+        phone: { $ref: '#/components/schemas/MexicanPhone' }
+        firstName: { type: string, minLength: 1, maxLength: 100 }
+        lastName: { type: string, minLength: 1, maxLength: 100 }
+    VerificationCodeRequest:
+      type: object
+      required: [code]
+      properties:
+        code: { type: string, pattern: '^[0-9]{6}$' }
+    Customer:
+      type: object
+      required: [id, email, phone, firstName, lastName, emailVerified, phoneVerified, identityStatus, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        phone: { $ref: '#/components/schemas/MexicanPhone' }
+        firstName: { type: string }
+        lastName: { type: string }
+        emailVerified: { type: boolean }
+        phoneVerified: { type: boolean }
+        identityStatus: { $ref: '#/components/schemas/IdentityStatus' }
+        createdAt: { type: string, format: date-time }
+    CustomerSummary:
+      type: object
+      description: Minimal data another service needs. No CURP or documents.
+      required: [id, displayName, identityStatus]
+      properties:
+        id: { type: string, format: uuid }
+        displayName: { type: string, examples: ['Ana G.'] }
+        identityStatus: { $ref: '#/components/schemas/IdentityStatus' }
+    IdentityStatus:
+      type: string
+      enum: [NOT_STARTED, PENDING, IN_REVIEW, APPROVED, REJECTED]
+    IdentityVerification:
+      type: object
+      required: [status, updatedAt]
+      properties:
+        status: { $ref: '#/components/schemas/IdentityStatus' }
+        rejectionReason: { type: [string, 'null'] }
+        limitTier: { type: [string, 'null'], enum: [BASIC, STANDARD, PLUS, null] }
+        updatedAt: { type: string, format: date-time }
+    Problem:
+      type: object
+      description: RFC 9457 Problem Details
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+        errors:
+          type: array
+          description: Field errors, present on validation failures
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              message: { type: string }

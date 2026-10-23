@@ -1,0 +1,295 @@
+openapi: 3.1.0
+info:
+  title: Nexo Accounts API
+  version: 0.1.0
+  description: |
+    Accounts, double-entry ledger, deposits and transfers. Accounts is the only service
+    that moves money (see ADR-001). Amounts are decimal strings, never JSON numbers.
+    Errors use RFC 9457 Problem Details (application/problem+json).
+servers:
+  - url: http://localhost:8082
+    description: Local
+tags:
+  - name: Accounts
+  - name: Deposits
+  - name: Transfers
+paths:
+  /accounts/{accountId}:
+    parameters:
+      - $ref: '#/components/parameters/AccountId'
+    get:
+      tags: [Accounts]
+      operationId: getAccount
+      summary: Get an account with its balance
+      responses:
+        '200':
+          description: Account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /accounts/{accountId}/entries:
+    parameters:
+      - $ref: '#/components/parameters/AccountId'
+    get:
+      tags: [Accounts]
+      operationId: listEntries
+      summary: List ledger entries, newest first
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+        - name: size
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: Page of entries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntryPage'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /accounts/{accountId}/deposits:
+    parameters:
+      - $ref: '#/components/parameters/AccountId'
+    post:
+      tags: [Deposits]
+      operationId: createDeposit
+      summary: Simulated deposit from the internal funding account
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepositRequest'
+      responses:
+        '201':
+          description: Deposit credited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Deposit'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/BusinessRuleViolation'
+  /transfers:
+    post:
+      tags: [Transfers]
+      operationId: createTransfer
+      summary: Send money to another customer
+      description: |
+        Repeating a request with the same Idempotency-Key returns the original result
+        and never moves money twice. A transfer flagged by risk rules is returned with
+        status HELD and no money moves until an analyst reviews it.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferRequest'
+      responses:
+        '201':
+          description: Transfer created (COMPLETED or HELD)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transfer'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          description: Source account or recipient not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Same Idempotency-Key reused with a different request body
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          $ref: '#/components/responses/BusinessRuleViolation'
+  /transfers/{transferId}:
+    parameters:
+      - name: transferId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Transfers]
+      operationId: getTransfer
+      summary: Get a transfer
+      responses:
+        '200':
+          description: Transfer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transfer'
+        '404':
+          $ref: '#/components/responses/NotFound'
+components:
+  parameters:
+    AccountId:
+      name: accountId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Client-generated UUID, unique per operation
+      schema: { type: string, format: uuid }
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    ValidationError:
+      description: Request body or parameters are invalid
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    BusinessRuleViolation:
+      description: |
+        Request is valid but breaks a business rule: insufficient funds, daily limit
+        exceeded, account frozen, or currency mismatch. The `type` field says which.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+  schemas:
+    Money:
+      type: object
+      required: [amount, currency]
+      properties:
+        amount:
+          type: string
+          description: Decimal string with up to 2 decimals
+          pattern: '^-?[0-9]+(\.[0-9]{1,2})?$'
+          examples: ['1250.50']
+        currency:
+          type: string
+          enum: [MXN, USD]
+    PositiveMoney:
+      allOf:
+        - $ref: '#/components/schemas/Money'
+        - type: object
+          properties:
+            amount:
+              pattern: '^[0-9]+(\.[0-9]{1,2})?$'
+    Account:
+      type: object
+      required: [id, customerId, clabe, currency, status, balance, availableBalance, dailyLimit, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        customerId: { type: string, format: uuid }
+        clabe:
+          type: string
+          description: Simulated 18-digit CLABE with a valid check digit
+          pattern: '^[0-9]{18}$'
+        currency: { type: string, enum: [MXN, USD] }
+        status: { type: string, enum: [ACTIVE, FROZEN, CLOSED] }
+        balance: { $ref: '#/components/schemas/Money' }
+        availableBalance: { $ref: '#/components/schemas/Money' }
+        dailyLimit: { $ref: '#/components/schemas/Money' }
+        createdAt: { type: string, format: date-time }
+    Entry:
+      type: object
+      description: Immutable ledger entry. Debits are negative, credits positive.
+      required: [id, type, amount, description, occurredAt]
+      properties:
+        id: { type: string, format: uuid }
+        type: { type: string, enum: [DEPOSIT, TRANSFER_IN, TRANSFER_OUT] }
+        amount: { $ref: '#/components/schemas/Money' }
+        description: { type: string, examples: ['Transfer to Ana G.'] }
+        transferId: { type: [string, 'null'], format: uuid }
+        occurredAt: { type: string, format: date-time }
+    EntryPage:
+      type: object
+      required: [content, page, size, totalElements]
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/Entry' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+    DepositRequest:
+      type: object
+      required: [amount]
+      properties:
+        amount: { $ref: '#/components/schemas/PositiveMoney' }
+    Deposit:
+      type: object
+      required: [id, accountId, amount, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        accountId: { type: string, format: uuid }
+        amount: { $ref: '#/components/schemas/Money' }
+        createdAt: { type: string, format: date-time }
+    Recipient:
+      type: object
+      description: Exactly one of phone, email or clabe
+      oneOf:
+        - required: [phone]
+          properties:
+            phone: { type: string, pattern: '^[0-9]{10}$' }
+        - required: [email]
+          properties:
+            email: { type: string, format: email }
+        - required: [clabe]
+          properties:
+            clabe: { type: string, pattern: '^[0-9]{18}$' }
+    TransferRequest:
+      type: object
+      required: [fromAccountId, recipient, amount]
+      properties:
+        fromAccountId: { type: string, format: uuid }
+        recipient: { $ref: '#/components/schemas/Recipient' }
+        amount: { $ref: '#/components/schemas/PositiveMoney' }
+        concept: { type: string, maxLength: 40, examples: ['Renta octubre'] }
+    Transfer:
+      type: object
+      required: [id, fromAccountId, toAccountId, amount, status, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        fromAccountId: { type: string, format: uuid }
+        toAccountId: { type: string, format: uuid }
+        amount: { $ref: '#/components/schemas/Money' }
+        concept: { type: [string, 'null'] }
+        status: { type: string, enum: [COMPLETED, HELD, REJECTED] }
+        rejectionReason: { type: [string, 'null'], enum: [REJECTED_BY_ANALYST, INSUFFICIENT_FUNDS, null] }
+        createdAt: { type: string, format: date-time }
+    Problem:
+      type: object
+      description: RFC 9457 Problem Details
+      properties:
+        type: { type: string, format: uri, examples: ['https://nexo.dev/problems/insufficient-funds'] }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              message: { type: string }

@@ -2,6 +2,7 @@ package com.nexo.customers.customer;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 import jakarta.persistence.Entity;
@@ -40,7 +41,7 @@ public class Customer {
         this.emailVerified = false;
         this.phoneVerified = false;
         this.identityStatus = IdentityStatus.NOT_STARTED;
-        this.createdAt = Instant.now();
+        this.createdAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
     }
 
     protected Customer(){}

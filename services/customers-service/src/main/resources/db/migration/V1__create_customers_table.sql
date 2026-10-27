@@ -11,7 +11,6 @@ CREATE TABLE customers (
     identity_status VARCHAR(20) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
 
-    -- Restricciones únicas con nombres legibles de negocio
     CONSTRAINT uk_customers_email UNIQUE (email),
     CONSTRAINT uk_customers_phone UNIQUE (phone)
 );

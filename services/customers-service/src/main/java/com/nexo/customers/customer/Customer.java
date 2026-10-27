@@ -4,23 +4,34 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
+@Entity 
+@Table(name = "customers")
 public class Customer {
 
-    private final UUID id;
-    private final String email;
+    @Id
+    private UUID id;
+    private String email;
     private String phone;
     private String firstName;
     private String lastName;
-    private final String curp;
-    private final LocalDate birthDate;
+    private String curp;
+    private LocalDate birthDate;
     private boolean emailVerified;
     private boolean phoneVerified;
+
+    @Enumerated(value = EnumType.STRING)
     private IdentityStatus identityStatus;
-    private final Instant createdAt;
+    private Instant createdAt;
     
     public Customer(String email, String phone, String firstName, String lastName, String curp, LocalDate birthDate) {
         this.id = UUID.randomUUID();
-        this.email = email;
+        this.email = email.toLowerCase();
         this.phone = phone;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -31,6 +42,8 @@ public class Customer {
         this.identityStatus = IdentityStatus.NOT_STARTED;
         this.createdAt = Instant.now();
     }
+
+    protected Customer(){}
 
     public String getPhone() {
         return phone;

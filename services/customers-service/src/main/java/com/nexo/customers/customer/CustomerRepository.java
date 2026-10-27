@@ -1,13 +1,10 @@
 package com.nexo.customers.customer;
 
-import java.util.Optional;
 import java.util.UUID;
 
-public interface CustomerRepository {
+import org.springframework.data.jpa.repository.JpaRepository;
 
-    Customer save(Customer customer);
-
-    Optional<Customer> findById(UUID id);
+public interface CustomerRepository extends JpaRepository<Customer, UUID> {
 
     boolean existsByEmail(String email);
 

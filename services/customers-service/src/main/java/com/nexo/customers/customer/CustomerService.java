@@ -3,6 +3,8 @@ package com.nexo.customers.customer;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 
 @Service 
 public class CustomerService {
@@ -13,8 +15,9 @@ public class CustomerService {
         this.customerRepository = customerRepository;
     }
 
+    @Transactional 
     public Customer register(RegisterCustomerRequest customerRequest) {
-        if (customerRepository.existsByEmail(customerRequest.email())) {
+        if (customerRepository.existsByEmail(customerRequest.email().toLowerCase())) {
             throw new DuplicateCustomerException("email");
         }
 
@@ -33,11 +36,13 @@ public class CustomerService {
 
         return customerRepository.save(newCustomer);
     }
-
+    
+    @Transactional(readOnly = true)
     public Customer get(UUID id) {
         return customerRepository.findById(id).orElseThrow(() -> new CustomerNotFoundException(id));
     }
 
+    @Transactional 
     public Customer update(UUID id, UpdateCustomerRequest updateCustomerRequest) {
         Customer customer = this.get(id);
 

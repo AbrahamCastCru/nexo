@@ -10,3 +10,9 @@ Design decisions to make later. Each one becomes an ADR when decided.
   Decide in Phase 4.
 - [ ] **Kafka in AWS.** Amazon MSK or Kafka inside the cluster? Compare cost and operations
   in Phase 18.
+- [ ] **Unique CURP per customer?** A CURP identifies one person, so two customers with
+  the same CURP likely means a duplicate account or identity fraud. Today the column has no
+  UNIQUE constraint because the service does not check it, and a constraint violation would
+  return 500 instead of 409. Decide with identity verification (KYC) in Phase 3: add a
+  `existsByCurp` check returning 409 plus a `uk_customers_curp` constraint in a new
+  migration, or allow duplicates and flag them for review.

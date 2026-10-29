@@ -14,7 +14,7 @@ http:
         "phone": "5512345678",
         "firstName": "Abraham",
         "lastName": "Castelan",
-        "curp": "CACX98P914HHGSRB08",
+        "curp": "CACX980914HHGSRB08",
         "birthDate": "1998-09-14"
       }
   auth: inherit

@@ -3,6 +3,8 @@ package com.nexo.customers.customer;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import jakarta.validation.Valid;
+
 import java.net.URI;
 import java.util.UUID;
 
@@ -25,7 +27,7 @@ public class CustomerController {
     }
 
     @PostMapping
-    public ResponseEntity<CustomerResponse> registerCustomer(@RequestBody RegisterCustomerRequest registerCustomerRequest) {
+    public ResponseEntity<CustomerResponse> registerCustomer(@RequestBody @Valid RegisterCustomerRequest registerCustomerRequest) {
         Customer newCustomer = customerService.register(registerCustomerRequest);
         CustomerResponse response = CustomerResponse.from(newCustomer);
         URI location = URI.create("/customers/" + response.id());
@@ -38,7 +40,7 @@ public class CustomerController {
     }
 
     @PatchMapping("/{id}")
-    public CustomerResponse updateCustomer(@PathVariable UUID id, @RequestBody UpdateCustomerRequest updateCustomerRequest) {
+    public CustomerResponse updateCustomer(@PathVariable UUID id, @RequestBody @Valid UpdateCustomerRequest updateCustomerRequest) {
         return CustomerResponse.from(customerService.update(id, updateCustomerRequest));
     }
 

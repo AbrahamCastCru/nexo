@@ -1,7 +1,6 @@
 package com.nexo.customers.shared.web;
 
 import java.net.URI;
-import java.util.List;
 
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -12,8 +11,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.BindingResult;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -54,7 +51,7 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     ProblemDetail handleDataIntegrityViolation() {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
             HttpStatus.CONFLICT, 
-            "The operation could not be completed due to a data integrity violation. Please ensure fields are not duplicated or missing required values."
+            "The operation could not be completed due to a data integrity violation. Please ensure fields are not duplicated."
         );
         problem.setTitle("Customer already exists");
         problem.setType(URI.create("https://nexo.dev/problems/duplicate-customer"));
@@ -74,7 +71,7 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     private record ValidationError(String field, String message) {}
-    
+
     @Override
     protected @Nullable ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
             HttpHeaders headers, HttpStatusCode status, WebRequest request) {
